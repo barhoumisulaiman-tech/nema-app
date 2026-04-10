@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { STATS, FOOD_REQUESTS, COURIERS, STATUS_LABELS, DONOR_TYPE_LABELS, PRIORITY_LABELS } from '@/lib/mock-data';
 import { getStatusColor, getPriorityColor, formatDate, timeAgo } from '@/lib/utils';
 import { Courier, FoodRequest } from '@/lib/types';
+import { DataService } from '@/lib/data-service';
 
 export default function AdminDashboard() {
   const [couriers, setCouriers] = useState<Courier[]>(COURIERS);
