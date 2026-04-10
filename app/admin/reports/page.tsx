@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { FOOD_REQUESTS, COURIERS } from '@/lib/mock-data';
 import { FoodRequest } from '@/lib/types';
+import { DataService } from '@/lib/data-service';
 
 export default function ReportsPage() {
   const [period, setPeriod] = useState('week');
@@ -11,11 +12,11 @@ export default function ReportsPage() {
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
   useEffect(() => {
-    // 1. Load requests from localStorage
-    const saved = JSON.parse(localStorage.getItem('nema_food_requests') || '[]');
-    // Merging with static data (though typically empty in real use)
-    const filteredStatic = FOOD_REQUESTS.filter(fr => !saved.some((sr: FoodRequest) => sr.id === fr.id));
-    setRequests([...saved, ...filteredStatic]);
+    const fetchData = async () => {
+      const data = await DataService.getRequests();
+      setRequests(data);
+    };
+    fetchData();
   }, []);
 
   // --- Dynamic Calculations ---
