@@ -104,7 +104,7 @@ export default function RequestDetailPage({ params: paramsPromise }: { params: P
           <p className="text-gray-500 mt-1">{request.donorName} · حي {request.district}</p>
         </div>
         <div className="flex gap-2">
-          {userRole !== 'supervisor' && (
+          {userRole === 'admin' && (
             <>
               <button onClick={() => showToast('✅ تم قبول الطلب')} className="btn-primary py-2 px-4 text-sm">✅ قبول</button>
               <button onClick={() => showToast('❌ تم رفض الطلب')} className="btn-danger py-2 px-4 text-sm">❌ رفض</button>
@@ -161,7 +161,7 @@ export default function RequestDetailPage({ params: paramsPromise }: { params: P
           <div className="card p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-black text-gray-900 text-lg">👷 المناديب المعينون</h2>
-              {userRole !== 'supervisor' && (
+              {userRole === 'admin' && (
                 <button onClick={() => setShowAssign(!showAssign)} className="btn-secondary py-2 px-4 text-sm">
                   تعيين مندوب +
                 </button>
@@ -338,8 +338,8 @@ export default function RequestDetailPage({ params: paramsPromise }: { params: P
               </div>
             )}
 
-            <button onClick={refreshAI} disabled={aiLoading}
-              className="mt-4 w-full btn-secondary py-2.5 text-sm justify-center">
+            <button onClick={refreshAI} disabled={aiLoading || userRole !== 'admin'}
+              className={`mt-4 w-full btn-secondary py-2.5 text-sm justify-center ${userRole !== 'admin' ? 'opacity-50 cursor-not-allowed' : ''}`}>
               {aiLoading ? '⏳ جاري التحليل...' : '🔄 تحديث التوصيات'}
             </button>
           </div>

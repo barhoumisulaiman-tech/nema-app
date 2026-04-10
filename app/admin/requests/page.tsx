@@ -64,7 +64,7 @@ export default function RequestsPage() {
   }, []);
 
   const handleAssignCourier = async () => {
-    if (!showAssignModal) return;
+    if (!showAssignModal || userRole !== 'admin') return;
     
     const selectedCourierObj = couriers.find(c => c.id === selectedCourier);
     
@@ -88,6 +88,7 @@ export default function RequestsPage() {
   };
 
   const handleAddRequest = async () => {
+    if (userRole !== 'admin') return;
     if (!newReq.donorName || !newReq.phone) {
       alert('يرجى ملء البيانات الأساسية');
       return;
@@ -132,6 +133,7 @@ export default function RequestsPage() {
   };
 
   const handleDeleteRequest = async (id: string) => {
+    if (userRole !== 'admin') return;
     if (!window.confirm('هل أنت متأكد من رغبتك في حذف هذا الطلب؟')) return;
     
     try {
@@ -143,6 +145,7 @@ export default function RequestsPage() {
   };
 
   const clearAllData = async () => {
+    if (userRole !== 'admin') return;
     if (window.confirm('⚠️ هل أنت متأكد من حذف كافة البيانات والبدء من جديد؟')) {
       try {
         await DataService.deleteAllRequests();
@@ -173,7 +176,7 @@ export default function RequestsPage() {
           <p className="text-gray-500 mt-1">منصة جمعية قوت - {filtered.length} طلب من أصل {requests.length}</p>
         </div>
         <div className="flex gap-2">
-          {userRole !== 'supervisor' && (
+          {userRole === 'admin' && (
             <>
               <button onClick={clearAllData} className="btn-ghost text-red-600 border-red-100 hover:bg-red-50 py-2 px-4 text-sm">🗑️ مسح الكل</button>
               <button onClick={() => setShowAddModal(true)} className="btn-primary">+ إنشاء طلب وإسناد</button>
@@ -248,7 +251,7 @@ export default function RequestsPage() {
                           className="p-1.5 rounded-lg bg-[#2f5d2f]/5 text-[#2f5d2f] hover:bg-[#2f5d2f]/10 transition text-xs font-medium">
                           📄 تفاصيل
                         </Link>
-                        {userRole !== 'supervisor' && (
+                        {userRole === 'admin' && (
                           <button onClick={() => handleDeleteRequest(req.id)}
                             className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition text-xs font-medium">
                             🗑️ حذف

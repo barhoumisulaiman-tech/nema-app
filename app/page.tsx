@@ -44,37 +44,53 @@ export default function LandingPage() {
           </div>
 
           {/* Action Cards */}
-          <div className="grid md:grid-cols-2 gap-8 mb-20 animate-slide-up">
+          <div className="grid md:grid-cols-3 gap-6 mb-20 animate-slide-up">
             {/* Admin Card */}
             <Link href="/login?role=admin" 
-              className="group relative bg-white border-2 border-gray-100 rounded-[2.5rem] p-10 hover:border-[#2f5d2f] transition-all duration-500 shadow-sm hover:shadow-2xl hover:shadow-[#2f5d2f]/10">
-              <div className="w-20 h-20 bg-[#2f5d2f]/5 rounded-3xl flex items-center justify-center text-4xl mb-8 group-hover:scale-110 transition-transform duration-500">
+              className="group relative bg-white border-2 border-gray-100 rounded-[2.5rem] p-8 hover:border-[#2f5d2f] transition-all duration-500 shadow-sm hover:shadow-2xl hover:shadow-[#2f5d2f]/10">
+              <div className="w-16 h-16 bg-[#2f5d2f]/5 rounded-[1.5rem] flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform duration-500">
                 ⚙️
               </div>
-              <h2 className="text-3xl font-black text-gray-900 mb-4">لوحة الإدارة</h2>
-              <p className="text-gray-500 leading-relaxed mb-8">
+              <h2 className="text-2xl font-black text-gray-900 mb-3">لوحة الإدارة</h2>
+              <p className="text-gray-500 text-sm leading-relaxed mb-6">
                 الدخول للوحة التحكم الرئيسية لإدارة الطلبات، تعيين المناديب، ومتابعة التقارير والإحصائيات اللحظية.
               </p>
-              <div className="flex items-center gap-2 text-[#2f5d2f] font-black">
-                دخول المدير <span className="text-xl group-hover:mr-2 transition-all">←</span>
+              <div className="flex items-center gap-2 text-[#2f5d2f] font-black text-sm">
+                دخول المدير <span className="text-lg group-hover:mr-2 transition-all">←</span>
               </div>
-              <div className="absolute top-6 left-6 opacity-5 text-8xl font-black pointer-events-none">ADMIN</div>
+              <div className="absolute top-4 left-4 opacity-5 text-6xl font-black pointer-events-none">ADMIN</div>
+            </Link>
+
+            {/* Supervisor Card */}
+            <Link href="/login?role=supervisor" 
+              className="group relative bg-white border-2 border-gray-100 rounded-[2.5rem] p-8 hover:border-[#b68a3a] transition-all duration-500 shadow-sm hover:shadow-2xl hover:shadow-[#b68a3a]/10">
+              <div className="w-16 h-16 bg-[#b68a3a]/5 rounded-[1.5rem] flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform duration-500">
+                👁️
+              </div>
+              <h2 className="text-2xl font-black text-gray-900 mb-3">نظام الرقابة</h2>
+              <p className="text-gray-500 text-sm leading-relaxed mb-6">
+                متابعة العمليات الميدانية والتقارير الحية بوضع "المشاهدة فقط" المخصص للمشرفين والجهات الرقابية.
+              </p>
+              <div className="flex items-center gap-2 text-[#b68a3a] font-black text-sm">
+                دخول المشرف <span className="text-lg group-hover:mr-2 transition-all">←</span>
+              </div>
+              <div className="absolute top-4 left-4 opacity-5 text-6xl font-black pointer-events-none">SUPER</div>
             </Link>
 
             {/* Courier Card */}
             <Link href="/login?role=courier" 
-              className="group relative bg-white border-2 border-gray-100 rounded-[2.5rem] p-10 hover:border-[#6dbe45] transition-all duration-500 shadow-sm hover:shadow-2xl hover:shadow-[#6dbe45]/10">
-              <div className="w-20 h-20 bg-[#6dbe45]/5 rounded-3xl flex items-center justify-center text-4xl mb-8 group-hover:scale-110 transition-transform duration-500">
+              className="group relative bg-white border-2 border-gray-100 rounded-[2.5rem] p-8 hover:border-[#6dbe45] transition-all duration-500 shadow-sm hover:shadow-2xl hover:shadow-[#6dbe45]/10">
+              <div className="w-16 h-16 bg-[#6dbe45]/5 rounded-[1.5rem] flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform duration-500">
                 🚗
               </div>
-              <h2 className="text-3xl font-black text-gray-900 mb-4">بوابة المناديب</h2>
-              <p className="text-gray-500 leading-relaxed mb-8">
-                الدخول لمنصة المناديب الميدانيين لمتابعة المهام المسندة، تحديث حالات الاستلام، والتواصل مع الإدارة.
+              <h2 className="text-2xl font-black text-gray-900 mb-3">بوابة المناديب</h2>
+              <p className="text-gray-500 text-sm leading-relaxed mb-6">
+                الدخول لمنصة المناديب لمتابعة المهام القادمة، تحديث حالات الاستلام، والتواصل مع العمليات.
               </p>
-              <div className="flex items-center gap-2 text-[#6dbe45] font-black">
-                دخول المندوب <span className="text-xl group-hover:mr-2 transition-all">←</span>
+              <div className="flex items-center gap-2 text-[#6dbe45] font-black text-sm">
+                دخول المندوب <span className="text-lg group-hover:mr-2 transition-all">←</span>
               </div>
-              <div className="absolute top-6 left-6 opacity-5 text-8xl font-black pointer-events-none">DRIVERS</div>
+              <div className="absolute top-4 left-4 opacity-5 text-6xl font-black pointer-events-none">COURIER</div>
             </Link>
           </div>
 

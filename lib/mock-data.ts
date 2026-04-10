@@ -199,3 +199,10 @@ export const COURIER_STATUS_LABELS: Record<string, string> = {
   on_task: 'في مهمة',
   unavailable: 'غير متاح',
 };
+
+export const DATA_REPORTS = [
+  { title: 'تقرير وجبات شهر ديسمبر', period: '12-2024', totalRequests: 450, date: '2024-12-01' },
+  { title: 'تقرير أداء المناديب - العليا', period: '11-2024', totalRequests: 320, date: '2024-11-15' },
+  { title: 'إحصائيات الهدر الغذائي السنوية', period: '2024', totalRequests: 2840, date: '2024-12-10' },
+  { title: 'تقرير الأسر المستفيدة - حي النرجس', period: 'Q4-2024', totalRequests: 180, date: '2024-12-05' },
+];

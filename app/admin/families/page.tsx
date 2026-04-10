@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BENEFICIARY_FAMILIES, PRIORITY_LABELS } from '@/lib/mock-data';
 import { getPriorityColor } from '@/lib/utils';
 
@@ -31,7 +31,7 @@ export default function FamiliesPage() {
           <h1 className="text-3xl font-black text-gray-900">👨‍👩‍👧‍👦 الأسر المستفيدة</h1>
           <p className="text-gray-500 mt-1">{BENEFICIARY_FAMILIES.length} أسرة مسجلة في النظام</p>
         </div>
-        {userRole !== 'supervisor' && (
+        {userRole === 'admin' && (
           <button onClick={() => setShowAdd(true)} className="btn-primary">+ إضافة أسرة</button>
         )}
       </div>
@@ -130,7 +130,7 @@ export default function FamiliesPage() {
                   </td>
                   <td>
                     <div className="flex gap-1">
-                      {userRole !== 'supervisor' && (
+                      {userRole === 'admin' && (
                         <button onClick={() => showToast(`✅ تم تعديل بيانات ${family.familyName}`)}
                           className="text-xs p-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600">تعديل</button>
                       )}

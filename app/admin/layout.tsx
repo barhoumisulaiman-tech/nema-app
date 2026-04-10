@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { QOOT_LOGO_BASE64 } from '@/lib/brand';
 
 const navItems = [
@@ -69,10 +69,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
 
+  const router = useRouter();
+
   useEffect(() => {
-    setUserRole(localStorage.getItem('nema_user_role') || 'admin');
-    setUserName(localStorage.getItem('nema_user_name') || 'أ. حسان');
-  }, []);
+    const role = localStorage.getItem('nema_user_role') || 'admin';
+    const name = localStorage.getItem('nema_user_name') || 'أ. حسان';
+    
+    setUserRole(role);
+    setUserName(name);
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-gray-50" style={{ direction: 'rtl' }}>

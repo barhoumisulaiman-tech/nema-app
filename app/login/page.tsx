@@ -7,7 +7,7 @@ import { Suspense } from 'react';
 const ROLES = {
   admin: { label: 'الإدارة', icon: '⚙️', color: '#2f5d2f', redirectTo: '/admin', email: 'admin@nema.org.sa', pass: '123456' },
   courier: { label: 'المندوب', icon: '🚗', color: '#6dbe45', redirectTo: '/courier', email: 'courier@nema.org.sa', pass: '123456' },
-  supervisor: { label: 'المشرف', icon: '👁️', color: '#b68a3a', redirectTo: '/admin', email: 'supervisor@nema.org.sa', pass: '123456' },
+  supervisor: { label: 'المشرف', icon: '👁️', color: '#b68a3a', redirectTo: '/supervisor', email: 'supervisor@nema.org.sa', pass: '123456' },
 };
 
 function LoginForm() {
