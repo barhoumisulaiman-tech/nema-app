@@ -8,8 +8,13 @@ export default function FamiliesPage() {
   const [filterPriority, setFilterPriority] = useState('all');
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState('');
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+
+  useEffect(() => {
+    setUserRole(localStorage.getItem('nema_user_role') || 'admin');
+  }, []);
 
   const filtered = BENEFICIARY_FAMILIES.filter(f => {
     const matchPriority = filterPriority === 'all' || f.priorityLevel === filterPriority;
@@ -26,7 +31,7 @@ export default function FamiliesPage() {
           <h1 className="text-3xl font-black text-gray-900">👨‍👩‍👧‍👦 الأسر المستفيدة</h1>
           <p className="text-gray-500 mt-1">{BENEFICIARY_FAMILIES.length} أسرة مسجلة في النظام</p>
         </div>
-        {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+        {userRole !== 'supervisor' && (
           <button onClick={() => setShowAdd(true)} className="btn-primary">+ إضافة أسرة</button>
         )}
       </div>
@@ -125,7 +130,7 @@ export default function FamiliesPage() {
                   </td>
                   <td>
                     <div className="flex gap-1">
-                      {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+                      {userRole !== 'supervisor' && (
                         <button onClick={() => showToast(`✅ تم تعديل بيانات ${family.familyName}`)}
                           className="text-xs p-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600">تعديل</button>
                       )}

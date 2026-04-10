@@ -13,15 +13,11 @@ const navItems = [
   { href: '/admin/reports', label: 'التقارير', icon: '📈' },
 ];
 
-  const [userRole, setUserRole] = useState('admin');
-  const [userName, setUserName] = useState('أ. حسان');
+function Sidebar({ open, onClose, role, name }: { open: boolean; onClose: () => void; role: string | null; name: string | null }) {
+  const pathname = usePathname();
 
-  useEffect(() => {
-    const role = localStorage.getItem('nema_user_role') || 'admin';
-    const name = localStorage.getItem('nema_user_name') || 'أ. حسان';
-    setUserRole(role);
-    setUserName(name);
-  }, []);
+  const isActive = (href: string, exact?: boolean) =>
+    exact ? pathname === href : pathname.startsWith(href);
 
   return (
     <>
@@ -35,7 +31,7 @@ const navItems = [
             </div>
             <div>
               <div className="font-black text-gray-900 text-sm leading-none">جمعية قوت</div>
-              <div className="text-xs text-[#6dbe45] font-black">{userRole === 'admin' ? 'لوحة الإدارة' : 'لوحة المشرف'}</div>
+              <div className="text-xs text-[#6dbe45] font-black">{role === 'supervisor' ? 'لوحة المشرف' : 'لوحة الإدارة'}</div>
             </div>
           </div>
         </div>
@@ -55,10 +51,10 @@ const navItems = [
         {/* User */}
         <div className="p-4 border-t border-gray-100">
           <div className="flex items-center gap-3 p-3 bg-[#2f5d2f]/5 rounded-xl border border-[#2f5d2f]/10">
-            <div className="w-9 h-9 bg-[#2f5d2f] rounded-full flex items-center justify-center text-white font-bold text-sm">{userName[0]}</div>
+            <div className="w-9 h-9 bg-[#2f5d2f] rounded-full flex items-center justify-center text-white font-bold text-sm">{name ? name[0] : 'ح'}</div>
             <div>
-              <div className="font-bold text-gray-800 text-sm">{userName}</div>
-              <div className="text-xs text-[#6dbe45] font-bold uppercase tracking-wider">{userRole === 'admin' ? 'مدير النظام' : 'مشرف - مشاهدة فقط'}</div>
+              <div className="font-bold text-gray-800 text-sm">{name || 'جاري التحميل...'}</div>
+              <div className="text-xs text-[#6dbe45] font-bold uppercase tracking-wider">{role === 'admin' ? 'مدير النظام' : role === 'supervisor' ? 'مشرف - مشاهدة فقط' : '...'}</div>
             </div>
           </div>
           <Link href="/login" onClick={() => localStorage.removeItem('nema_user_role')} className="btn-ghost w-full justify-center mt-3 text-xs">تسجيل الخروج</Link>
@@ -70,10 +66,17 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUserRole(localStorage.getItem('nema_user_role') || 'admin');
+    setUserName(localStorage.getItem('nema_user_name') || 'أ. حسان');
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50" style={{ direction: 'rtl' }}>
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} role={userRole} name={userName} />
 
       {/* Main content */}
       <div className="lg:pr-[260px] min-h-screen">
@@ -95,7 +98,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </button>
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">3</span>
             </div>
-            {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+            {userRole && userRole !== 'supervisor' && (
               <Link href="/admin/requests"
                 className="btn-primary py-2 px-4 text-sm">
                 + طلب جديد

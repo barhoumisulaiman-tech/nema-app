@@ -30,6 +30,7 @@ export default function RequestsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // Form state for new manual request
   const [newReq, setNewReq] = useState({
@@ -45,10 +46,13 @@ export default function RequestsPage() {
   };
 
   useEffect(() => {
-    // 1. Fetch initial data from Supabase
+    // 1. Fetch user role
+    setUserRole(localStorage.getItem('nema_user_role') || 'admin');
+
+    // 2. Fetch initial data from Supabase
     fetchInitialData();
 
-    // 2. Real-time Subscription
+    // 3. Real-time Subscription
     const subscription = DataService.subscribeToRequests((payload) => {
       // Refresh list on any DB change
       fetchInitialData();
@@ -169,7 +173,7 @@ export default function RequestsPage() {
           <p className="text-gray-500 mt-1">منصة جمعية قوت - {filtered.length} طلب من أصل {requests.length}</p>
         </div>
         <div className="flex gap-2">
-          {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+          {userRole !== 'supervisor' && (
             <>
               <button onClick={clearAllData} className="btn-ghost text-red-600 border-red-100 hover:bg-red-50 py-2 px-4 text-sm">🗑️ مسح الكل</button>
               <button onClick={() => setShowAddModal(true)} className="btn-primary">+ إنشاء طلب وإسناد</button>
@@ -240,17 +244,17 @@ export default function RequestsPage() {
                   <td><span className={`badge ${getStatusColor(req.currentStatus)}`}>{STATUS_LABELS[req.currentStatus]}</span></td>
                   <td>
                     <div className="flex items-center gap-1">
-                      <Link href={`/admin/requests/${req.id}`}
-                        className="p-1.5 rounded-lg bg-[#2f5d2f]/5 text-[#2f5d2f] hover:bg-[#2f5d2f]/10 transition text-xs font-medium">
-                        📄 تفاصيل
-                      </Link>
-                      {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
-                        <button onClick={() => handleDeleteRequest(req.id)}
-                          className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition text-xs font-medium">
-                          🗑️ حذف
-                        </button>
-                      )}
-                    </div>
+                        <Link href={`/admin/requests/${req.id}`}
+                          className="p-1.5 rounded-lg bg-[#2f5d2f]/5 text-[#2f5d2f] hover:bg-[#2f5d2f]/10 transition text-xs font-medium">
+                          📄 تفاصيل
+                        </Link>
+                        {userRole !== 'supervisor' && (
+                          <button onClick={() => handleDeleteRequest(req.id)}
+                            className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition text-xs font-medium">
+                            🗑️ حذف
+                          </button>
+                        )}
+                      </div>
                   </td>
                 </tr>
               ))}

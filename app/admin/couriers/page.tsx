@@ -11,9 +11,13 @@ export default function CouriersPage() {
   const [toast, setToast] = useState('');
   const [couriers, setCouriers] = useState<Courier[]>(COURIERS);
   const [courierStats, setCourierStats] = useState<Record<string, {active: number, completed: number, total: number}>>({});
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load overrides from localStorage
+    // 0. Fetch role
+    setUserRole(localStorage.getItem('nema_user_role') || 'admin');
+
+    // 1. Load overrides from localStorage
     const savedStatus = localStorage.getItem('nema_courier_status_c1');
     if (savedStatus) {
       setCouriers(prev => prev.map(c => 
@@ -53,7 +57,7 @@ export default function CouriersPage() {
           <h1 className="text-3xl font-black text-gray-900">🚗 إدارة المناديب</h1>
           <p className="text-gray-500 mt-1">{couriers.length} مندوبين مسجلين</p>
         </div>
-        {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+        {userRole !== 'supervisor' && (
           <button onClick={() => setShowAdd(true)} className="btn-primary">+ إضافة مندوب</button>
         )}
       </div>
@@ -138,7 +142,7 @@ export default function CouriersPage() {
               {courier.taskTypes.includes('distribution') && <span className="badge bg-blue-100 text-blue-700">توزيع</span>}
             </div>
 
-            {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+            {userRole !== 'supervisor' && (
               <div className="flex gap-2">
                 <button onClick={() => showToast(`✅ تم تعديل بيانات ${courier.name}`)} className="btn-ghost flex-1 justify-center text-sm">تعديل</button>
                 <button onClick={() => showToast(`${courier.availabilityStatus === 'unavailable' ? '✅ تم تفعيل' : '⏸️ تم إيقاف'} ${courier.name}`)}

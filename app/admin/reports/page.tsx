@@ -8,10 +8,14 @@ export default function ReportsPage() {
   const [period, setPeriod] = useState('week');
   const [toast, setToast] = useState('');
   const [requests, setRequests] = useState<FoodRequest[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
   
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
   useEffect(() => {
+    // Fetch role
+    setUserRole(localStorage.getItem('nema_user_role') || 'admin');
+
     const fetchData = async () => {
       const data = await DataService.getRequests();
       setRequests(data);
@@ -111,7 +115,9 @@ export default function ReportsPage() {
                 className={`px-4 py-2 text-sm font-semibold transition-all ${period === k ? 'bg-green-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>{l}</button>
             ))}
           </div>
-          <button onClick={() => showToast('📥 جاري تصدير التقرير...')} className="btn-primary py-2 px-4 text-sm">📥 تصدير</button>
+          {userRole !== 'supervisor' && (
+            <button onClick={() => showToast('📥 جاري تصدير التقرير...')} className="btn-primary py-2 px-4 text-sm">📥 تصدير</button>
+          )}
         </div>
       </div>
 

@@ -9,14 +9,19 @@ import { DataService } from '@/lib/data-service';
 export default function AdminDashboard() {
   const [couriers, setCouriers] = useState<Courier[]>(COURIERS);
   const [requests, setRequests] = useState<FoodRequest[]>([]);
-
-  const fetchRequests = async () => {
-    const data = await DataService.getRequests();
-    setRequests(data);
-  };
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchRequests();
+    // 1. Fetch role
+    setUserRole(localStorage.getItem('nema_user_role') || 'admin');
+
+    // 2. Fetch initial data from Supabase
+    const fetchInitialData = async () => {
+      const data = await DataService.getRequests();
+      setRequests(data);
+    };
+
+    fetchInitialData();
 
     // Real-time Subscription
     const subscription = DataService.subscribeToRequests(() => {
@@ -62,7 +67,7 @@ export default function AdminDashboard() {
           <div className="text-sm text-gray-400 bg-white border rounded-xl px-4 py-2">
             📅 {new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', calendar: 'gregory' })}
           </div>
-          {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+          {userRole !== 'supervisor' && (
             <Link href="/admin/requests" className="btn-primary py-2 px-5 text-sm">عرض كل الطلبات</Link>
           )}
         </div>
@@ -155,7 +160,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions - Hidden for Supervisor */}
-      {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+      {userRole !== 'supervisor' && (
         <div className="card p-6">
           <h2 className="font-black text-gray-900 text-lg mb-5">⚡ إجراءات سريعة</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

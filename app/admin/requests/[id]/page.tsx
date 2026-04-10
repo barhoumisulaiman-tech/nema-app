@@ -16,6 +16,7 @@ export default function RequestDetailPage({ params: paramsPromise }: { params: P
   const [showAssign, setShowAssign] = useState(false);
   const [toast, setToast] = useState('');
   const [couriers, setCouriers] = useState<Courier[]>(COURIERS);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   const fetchRequest = async () => {
     const data = await DataService.getRequestById(params.id);
@@ -30,6 +31,9 @@ export default function RequestDetailPage({ params: paramsPromise }: { params: P
   };
 
   useEffect(() => {
+    // 0. Fetch role
+    setUserRole(localStorage.getItem('nema_user_role') || 'admin');
+
     // 1. Initial Fetch
     fetchRequest();
 
@@ -100,7 +104,7 @@ export default function RequestDetailPage({ params: paramsPromise }: { params: P
           <p className="text-gray-500 mt-1">{request.donorName} · حي {request.district}</p>
         </div>
         <div className="flex gap-2">
-          {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+          {userRole !== 'supervisor' && (
             <>
               <button onClick={() => showToast('✅ تم قبول الطلب')} className="btn-primary py-2 px-4 text-sm">✅ قبول</button>
               <button onClick={() => showToast('❌ تم رفض الطلب')} className="btn-danger py-2 px-4 text-sm">❌ رفض</button>
@@ -157,7 +161,7 @@ export default function RequestDetailPage({ params: paramsPromise }: { params: P
           <div className="card p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-black text-gray-900 text-lg">👷 المناديب المعينون</h2>
-              {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+              {userRole !== 'supervisor' && (
                 <button onClick={() => setShowAssign(!showAssign)} className="btn-secondary py-2 px-4 text-sm">
                   تعيين مندوب +
                 </button>
