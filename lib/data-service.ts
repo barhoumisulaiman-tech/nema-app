@@ -76,11 +76,8 @@ export const DataService = {
   async addRequest(request: FoodRequest) {
     const dbRecord = mapRequestToDb(request);
     
-    // If the ID is a temporary frontend ID (not a UUID), remove it to let Supabase generate one
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(dbRecord.id || '');
-    if (dbRecord.id && !isUuid) {
-      delete dbRecord.id;
-    }
+    // Use the ID provided by the frontend. 
+    // This fixes the 'null value in column id' error because the table doesn't have an auto-generator.
 
     const { error } = await supabase
       .from('food_requests')
