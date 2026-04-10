@@ -93,6 +93,7 @@ export default function RequestsPage() {
     const selectedCourierObj = couriers.find(c => c.id === newReq.assignedCourierId);
 
     const newRequest: any = {
+      id: Math.random().toString(36).substr(2, 9),
       requestNumber: 'NM-MAN-' + (Math.floor(Math.random() * 900) + 100),
       donorName: newReq.donorName,
       donorType: newReq.donorType as any || 'other',
