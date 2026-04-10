@@ -64,20 +64,23 @@ function Sidebar({ open, onClose, name }: { open: boolean; onClose: () => void; 
 export default function SupervisorLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+    setMounted(true);
     const role = localStorage.getItem('nema_user_role');
     const name = localStorage.getItem('nema_user_name');
     
-    // Safety redirect if not supervisor (optional but good)
+    // Safety redirect if definitely not authorized
     if (role !== 'supervisor' && role !== 'admin') {
       router.push('/login');
-      return;
+    } else {
+      setUserName(name || 'المشرف');
     }
-    
-    setUserName(name || 'المشرف');
   }, [router]);
+
+  if (!mounted) return <div className="min-h-screen bg-gray-50 flex items-center justify-center font-bold text-gray-400">جاري التحقق...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50" style={{ direction: 'rtl' }}>
