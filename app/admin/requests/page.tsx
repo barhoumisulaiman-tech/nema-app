@@ -169,8 +169,12 @@ export default function RequestsPage() {
           <p className="text-gray-500 mt-1">منصة جمعية قوت - {filtered.length} طلب من أصل {requests.length}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={clearAllData} className="btn-ghost text-red-600 border-red-100 hover:bg-red-50 py-2 px-4 text-sm">🗑️ مسح الكل</button>
-          <button onClick={() => setShowAddModal(true)} className="btn-primary">+ إنشاء طلب وإسناد</button>
+          {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+            <>
+              <button onClick={clearAllData} className="btn-ghost text-red-600 border-red-100 hover:bg-red-50 py-2 px-4 text-sm">🗑️ مسح الكل</button>
+              <button onClick={() => setShowAddModal(true)} className="btn-primary">+ إنشاء طلب وإسناد</button>
+            </>
+          )}
         </div>
       </div>
 
@@ -240,10 +244,12 @@ export default function RequestsPage() {
                         className="p-1.5 rounded-lg bg-[#2f5d2f]/5 text-[#2f5d2f] hover:bg-[#2f5d2f]/10 transition text-xs font-medium">
                         📄 تفاصيل
                       </Link>
-                      <button onClick={() => handleDeleteRequest(req.id)}
-                        className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition text-xs font-medium">
-                        🗑️ حذف
-                      </button>
+                      {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+                        <button onClick={() => handleDeleteRequest(req.id)}
+                          className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition text-xs font-medium">
+                          🗑️ حذف
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

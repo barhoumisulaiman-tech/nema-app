@@ -53,7 +53,9 @@ export default function CouriersPage() {
           <h1 className="text-3xl font-black text-gray-900">🚗 إدارة المناديب</h1>
           <p className="text-gray-500 mt-1">{couriers.length} مندوبين مسجلين</p>
         </div>
-        <button onClick={() => setShowAdd(true)} className="btn-primary">+ إضافة مندوب</button>
+        {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+          <button onClick={() => setShowAdd(true)} className="btn-primary">+ إضافة مندوب</button>
+        )}
       </div>
 
       {/* Stats */}
@@ -136,17 +138,19 @@ export default function CouriersPage() {
               {courier.taskTypes.includes('distribution') && <span className="badge bg-blue-100 text-blue-700">توزيع</span>}
             </div>
 
-            <div className="flex gap-2">
-              <button onClick={() => showToast(`✅ تم تعديل بيانات ${courier.name}`)} className="btn-ghost flex-1 justify-center text-sm">تعديل</button>
-              <button onClick={() => showToast(`${courier.availabilityStatus === 'unavailable' ? '✅ تم تفعيل' : '⏸️ تم إيقاف'} ${courier.name}`)}
-                className={`flex-1 text-sm font-semibold py-2 px-4 rounded-xl transition-all border ${
-                  courier.availabilityStatus === 'unavailable'
-                    ? 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'
-                    : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
-                }`}>
-                {courier.availabilityStatus === 'unavailable' ? '✅ تفعيل' : '⏸️ إيقاف'}
-              </button>
-            </div>
+            {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+              <div className="flex gap-2">
+                <button onClick={() => showToast(`✅ تم تعديل بيانات ${courier.name}`)} className="btn-ghost flex-1 justify-center text-sm">تعديل</button>
+                <button onClick={() => showToast(`${courier.availabilityStatus === 'unavailable' ? '✅ تم تفعيل' : '⏸️ تم إيقاف'} ${courier.name}`)}
+                  className={`flex-1 text-sm font-semibold py-2 px-4 rounded-xl transition-all border ${
+                    courier.availabilityStatus === 'unavailable'
+                      ? 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'
+                      : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                  }`}>
+                  {courier.availabilityStatus === 'unavailable' ? '✅ تفعيل' : '⏸️ إيقاف'}
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>

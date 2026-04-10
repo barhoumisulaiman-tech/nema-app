@@ -26,7 +26,9 @@ export default function FamiliesPage() {
           <h1 className="text-3xl font-black text-gray-900">👨‍👩‍👧‍👦 الأسر المستفيدة</h1>
           <p className="text-gray-500 mt-1">{BENEFICIARY_FAMILIES.length} أسرة مسجلة في النظام</p>
         </div>
-        <button onClick={() => setShowAdd(true)} className="btn-primary">+ إضافة أسرة</button>
+        {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+          <button onClick={() => setShowAdd(true)} className="btn-primary">+ إضافة أسرة</button>
+        )}
       </div>
 
       {/* Stats */}
@@ -123,8 +125,10 @@ export default function FamiliesPage() {
                   </td>
                   <td>
                     <div className="flex gap-1">
-                      <button onClick={() => showToast(`✅ تم تعديل بيانات ${family.familyName}`)}
-                        className="text-xs p-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600">تعديل</button>
+                      {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+                        <button onClick={() => showToast(`✅ تم تعديل بيانات ${family.familyName}`)}
+                          className="text-xs p-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600">تعديل</button>
+                      )}
                       <button onClick={() => showToast('📋 عرض سجل الاستفادة')}
                         className="text-xs p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600">السجل</button>
                     </div>

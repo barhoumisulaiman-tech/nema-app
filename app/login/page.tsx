@@ -27,6 +27,8 @@ function LoginForm() {
     setError('');
     await new Promise(r => setTimeout(r, 1200));
     if (email === currentRole.email && password === currentRole.pass) {
+      localStorage.setItem('nema_user_role', role);
+      localStorage.setItem('nema_user_name', role === 'admin' ? 'أ. حسان' : 'المشرف');
       router.push(currentRole.redirectTo);
     } else {
       setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');

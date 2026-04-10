@@ -62,7 +62,9 @@ export default function AdminDashboard() {
           <div className="text-sm text-gray-400 bg-white border rounded-xl px-4 py-2">
             📅 {new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', calendar: 'gregory' })}
           </div>
-          <Link href="/admin/requests" className="btn-primary py-2 px-5 text-sm">عرض كل الطلبات</Link>
+          {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+            <Link href="/admin/requests" className="btn-primary py-2 px-5 text-sm">عرض كل الطلبات</Link>
+          )}
         </div>
       </div>
 
@@ -152,25 +154,27 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="card p-6">
-        <h2 className="font-black text-gray-900 text-lg mb-5">⚡ إجراءات سريعة</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'طلب جديد', icon: '➕', href: '/admin/requests', color: '#6dbe45' },
-            { label: 'تعيين مندوب', icon: '👷', href: '/admin/requests', color: '#b68a3a' },
-            { label: 'إضافة أسرة', icon: '🏡', href: '/admin/families', color: '#2f5d2f' },
-            { label: 'عرض التقارير', icon: '📊', href: '/admin/reports', color: '#d79a2b' },
-          ].map((action, i) => (
-            <Link key={i} href={action.href}
-              className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-dashed border-gray-200 hover:border-current hover:bg-gray-50 transition-all text-center"
-              style={{ color: action.color }}>
-              <div className="text-4xl">{action.icon}</div>
-              <div className="font-bold text-sm">{action.label}</div>
-            </Link>
-          ))}
+      {/* Quick Actions - Hidden for Supervisor */}
+      {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+        <div className="card p-6">
+          <h2 className="font-black text-gray-900 text-lg mb-5">⚡ إجراءات سريعة</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'طلب جديد', icon: '➕', href: '/admin/requests', color: '#6dbe45' },
+              { label: 'تعيين مندوب', icon: '👷', href: '/admin/requests', color: '#b68a3a' },
+              { label: 'إضافة أسرة', icon: '🏡', href: '/admin/families', color: '#2f5d2f' },
+              { label: 'عرض التقارير', icon: '📊', href: '/admin/reports', color: '#d79a2b' },
+            ].map((action, i) => (
+              <Link key={i} href={action.href}
+                className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-dashed border-gray-200 hover:border-current hover:bg-gray-50 transition-all text-center"
+                style={{ color: action.color }}>
+                <div className="text-4xl">{action.icon}</div>
+                <div className="font-bold text-sm">{action.label}</div>
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Urgent Alert */}
       {requests.filter(r => r.priorityLevel === 'urgent' && r.currentStatus !== 'completed').length > 0 && (

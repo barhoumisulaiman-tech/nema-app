@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { QOOT_LOGO_BASE64 } from '@/lib/brand';
 
@@ -13,11 +13,15 @@ const navItems = [
   { href: '/admin/reports', label: 'التقارير', icon: '📈' },
 ];
 
-function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const pathname = usePathname();
+  const [userRole, setUserRole] = useState('admin');
+  const [userName, setUserName] = useState('أ. حسان');
 
-  const isActive = (href: string, exact?: boolean) =>
-    exact ? pathname === href : pathname.startsWith(href);
+  useEffect(() => {
+    const role = localStorage.getItem('nema_user_role') || 'admin';
+    const name = localStorage.getItem('nema_user_name') || 'أ. حسان';
+    setUserRole(role);
+    setUserName(name);
+  }, []);
 
   return (
     <>
@@ -31,7 +35,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
             </div>
             <div>
               <div className="font-black text-gray-900 text-sm leading-none">جمعية قوت</div>
-              <div className="text-xs text-[#6dbe45] font-black">لوحة الإدارة</div>
+              <div className="text-xs text-[#6dbe45] font-black">{userRole === 'admin' ? 'لوحة الإدارة' : 'لوحة المشرف'}</div>
             </div>
           </div>
         </div>
@@ -51,13 +55,13 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         {/* User */}
         <div className="p-4 border-t border-gray-100">
           <div className="flex items-center gap-3 p-3 bg-[#2f5d2f]/5 rounded-xl border border-[#2f5d2f]/10">
-            <div className="w-9 h-9 bg-[#2f5d2f] rounded-full flex items-center justify-center text-white font-bold text-sm">ح</div>
+            <div className="w-9 h-9 bg-[#2f5d2f] rounded-full flex items-center justify-center text-white font-bold text-sm">{userName[0]}</div>
             <div>
-              <div className="font-bold text-gray-800 text-sm">أ. حسان - الإدارة</div>
-              <div className="text-xs text-[#6dbe45] font-bold uppercase tracking-wider">مدير النظام</div>
+              <div className="font-bold text-gray-800 text-sm">{userName}</div>
+              <div className="text-xs text-[#6dbe45] font-bold uppercase tracking-wider">{userRole === 'admin' ? 'مدير النظام' : 'مشرف - مشاهدة فقط'}</div>
             </div>
           </div>
-          <Link href="/login" className="btn-ghost w-full justify-center mt-3 text-xs">تسجيل الخروج</Link>
+          <Link href="/login" onClick={() => localStorage.removeItem('nema_user_role')} className="btn-ghost w-full justify-center mt-3 text-xs">تسجيل الخروج</Link>
         </div>
       </aside>
     </>
@@ -91,10 +95,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </button>
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">3</span>
             </div>
-            <Link href="/admin/requests"
-              className="btn-primary py-2 px-4 text-sm">
-              + طلب جديد
-            </Link>
+            {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+              <Link href="/admin/requests"
+                className="btn-primary py-2 px-4 text-sm">
+                + طلب جديد
+              </Link>
+            )}
           </div>
         </header>
 

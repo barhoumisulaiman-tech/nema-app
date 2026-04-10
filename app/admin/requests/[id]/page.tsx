@@ -100,8 +100,12 @@ export default function RequestDetailPage({ params: paramsPromise }: { params: P
           <p className="text-gray-500 mt-1">{request.donorName} · حي {request.district}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => showToast('✅ تم قبول الطلب')} className="btn-primary py-2 px-4 text-sm">✅ قبول</button>
-          <button onClick={() => showToast('❌ تم رفض الطلب')} className="btn-danger py-2 px-4 text-sm">❌ رفض</button>
+          {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+            <>
+              <button onClick={() => showToast('✅ تم قبول الطلب')} className="btn-primary py-2 px-4 text-sm">✅ قبول</button>
+              <button onClick={() => showToast('❌ تم رفض الطلب')} className="btn-danger py-2 px-4 text-sm">❌ رفض</button>
+            </>
+          )}
           <button onClick={() => window.print()} className="btn-ghost py-2 px-4 text-sm">🖨️ طباعة</button>
         </div>
       </div>
@@ -153,9 +157,11 @@ export default function RequestDetailPage({ params: paramsPromise }: { params: P
           <div className="card p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-black text-gray-900 text-lg">👷 المناديب المعينون</h2>
-              <button onClick={() => setShowAssign(!showAssign)} className="btn-secondary py-2 px-4 text-sm">
-                تعيين مندوب +
-              </button>
+              {typeof window !== 'undefined' && localStorage.getItem('nema_user_role') !== 'supervisor' && (
+                <button onClick={() => setShowAssign(!showAssign)} className="btn-secondary py-2 px-4 text-sm">
+                  تعيين مندوب +
+                </button>
+              )}
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className={`rounded-2xl border-2 p-4 ${request.pickupCourierName ? 'border-green-200 bg-green-50' : 'border-dashed border-gray-200'}`}>
