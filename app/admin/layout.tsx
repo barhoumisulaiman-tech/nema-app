@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { QOOT_LOGO_BASE64 } from '@/lib/brand';
+import { supabase } from '@/lib/supabase';
 
 const navItems = [
   { href: '/admin', label: 'لوحة التحكم', icon: '📊', exact: true },
@@ -57,7 +58,11 @@ function Sidebar({ open, onClose, role, name }: { open: boolean; onClose: () => 
               <div className="text-xs text-[#6dbe45] font-bold uppercase tracking-wider">{role === 'admin' ? 'مدير النظام' : role === 'supervisor' ? 'مشرف - مشاهدة فقط' : '...'}</div>
             </div>
           </div>
-          <Link href="/login" onClick={() => localStorage.removeItem('nema_user_role')} className="btn-ghost w-full justify-center mt-3 text-xs">تسجيل الخروج</Link>
+          <button onClick={async () => {
+            await supabase.auth.signOut();
+            localStorage.clear();
+            window.location.href = '/login';
+          }} className="btn-ghost w-full justify-center mt-3 text-xs">تسجيل الخروج</button>
         </div>
       </aside>
     </>
@@ -72,11 +77,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
 
   useEffect(() => {
-    const role = localStorage.getItem('nema_user_role') || 'admin';
-    const name = localStorage.getItem('nema_user_name') || 'أ. حسان';
-    
-    setUserRole(role);
-    setUserName(name);
+    const verifyAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+      
+      const role = localStorage.getItem('nema_user_role') || 'admin';
+      const name = localStorage.getItem('nema_user_name') || 'أ. حسان';
+      
+      setUserRole(role);
+      setUserName(name);
+    };
+    verifyAuth();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        router.push('/login');
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, [router]);
 
   return (

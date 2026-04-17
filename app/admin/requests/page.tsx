@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { STATUS_LABELS, DONOR_TYPE_LABELS, PRIORITY_LABELS, COURIERS } from '@/lib/mock-data';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { STATUS_LABELS, DONOR_TYPE_LABELS, PRIORITY_LABELS, COURIERS, BENEFICIARY_FAMILIES } from '@/lib/mock-data';
 import { getStatusColor, getPriorityColor, timeAgo } from '@/lib/utils';
 import { DataService } from '@/lib/data-service';
 import { RequestStatus, Courier, FoodRequest } from '@/lib/types';
@@ -19,7 +20,8 @@ const statusFilters: { key: string; label: string }[] = [
   { key: 'cancelled', label: 'ملغي' },
 ];
 
-export default function RequestsPage() {
+function RequestsContent() {
+  const searchParams = useSearchParams();
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -31,13 +33,15 @@ export default function RequestsPage() {
   const [toast, setToast] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [addStage, setAddStage] = useState<'select' | 'pickup' | 'distribution'>('select');
 
   // Form state for new manual request
   const [newReq, setNewReq] = useState({
     donorName: '', donorType: '', phone: '',
     district: '', googleMapsLink: '',
-    pickupTime: '',
-    assignedCourierId: ''
+    pickupTime: '', notes: '',
+    assignedCourierId: '',
+    selectedFamilyId: ''
   });
 
   const fetchInitialData = async () => {
@@ -58,10 +62,15 @@ export default function RequestsPage() {
       fetchInitialData();
     });
 
+    // 4. Auto-open modal if requested via URL
+    if (searchParams.get('add') === 'true') {
+      setShowAddModal(true);
+    }
+
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [searchParams]);
 
   const handleAssignCourier = async () => {
     if (!showAssignModal || userRole !== 'admin') return;
@@ -89,29 +98,39 @@ export default function RequestsPage() {
 
   const handleAddRequest = async () => {
     if (userRole !== 'admin') return;
-    if (!newReq.donorName || !newReq.phone) {
-      alert('يرجى ملء البيانات الأساسية');
+    if (addStage === 'pickup' && (!newReq.donorName || !newReq.phone)) {
+      alert('يرجى ملء البيانات الأساسية للمتبرع');
+      return;
+    }
+    if (addStage === 'distribution' && !newReq.selectedFamilyId) {
+      alert('يرجى اختيار الأسرة المستفيدة');
       return;
     }
 
     setIsSubmitting(true);
     const selectedCourierObj = couriers.find(c => c.id === newReq.assignedCourierId);
+    const selectedFamily = BENEFICIARY_FAMILIES.find(f => f.id === newReq.selectedFamilyId);
 
     const newRequest: any = {
       id: Math.random().toString(36).substr(2, 9),
-      requestNumber: 'NM-MAN-' + (Math.floor(Math.random() * 900) + 100),
-      donorName: newReq.donorName,
-      donorType: newReq.donorType as any || 'other',
-      phone: newReq.phone,
-      district: newReq.district,
-      googleMapsLink: newReq.googleMapsLink,
-      pickupTime: newReq.pickupTime,
-      currentStatus: newReq.assignedCourierId ? 'pickup_assigned' : 'new',
-      priorityLevel: 'medium',
+      requestNumber: `NM-${addStage === 'pickup' ? 'PCK' : 'DST'}-` + (Math.floor(Math.random() * 900) + 100),
+      donorName: addStage === 'pickup' ? newReq.donorName : 'مبادرة توزيع داخلي',
+      donorType: addStage === 'pickup' ? (newReq.donorType as any || 'other') : 'other',
+      phone: addStage === 'pickup' ? newReq.phone : '—',
+      district: addStage === 'pickup' ? newReq.district : (selectedFamily?.district || '—'),
+      googleMapsLink: addStage === 'pickup' ? newReq.googleMapsLink : '',
+      pickupTime: addStage === 'pickup' ? newReq.pickupTime : 'توزيع فوري',
+      currentStatus: addStage === 'pickup' 
+        ? (newReq.assignedCourierId ? 'pickup_assigned' : 'new')
+        : 'distribution_assigned',
+      priorityLevel: addStage === 'pickup' ? 'medium' : (selectedFamily?.priorityLevel || 'medium'),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      pickupCourierId: newReq.assignedCourierId || undefined,
-      pickupCourierName: selectedCourierObj?.name || undefined,
+      pickupCourierId: addStage === 'pickup' ? (newReq.assignedCourierId || undefined) : undefined,
+      pickupCourierName: addStage === 'pickup' ? (selectedCourierObj?.name || undefined) : undefined,
+      distributionCourierId: addStage === 'distribution' ? (newReq.assignedCourierId || undefined) : undefined,
+      distributionCourierName: addStage === 'distribution' ? (selectedCourierObj?.name || undefined) : undefined,
+      assignedFamilies: addStage === 'distribution' ? [newReq.selectedFamilyId] : undefined,
     };
 
     try {
@@ -122,9 +141,11 @@ export default function RequestsPage() {
       setNewReq({
         donorName: '', donorType: '', phone: '',
         district: '', googleMapsLink: '',
-        pickupTime: '',
-        assignedCourierId: ''
+        pickupTime: '', notes: '',
+        assignedCourierId: '',
+        selectedFamilyId: ''
       });
+      setAddStage('select');
       showToast('✅ تم إضافة الطلب وإسناده بنجاح');
     } catch (e: any) {
       setIsSubmitting(false);
@@ -179,7 +200,7 @@ export default function RequestsPage() {
           {userRole === 'admin' && (
             <>
               <button onClick={clearAllData} className="btn-ghost text-red-600 border-red-100 hover:bg-red-50 py-2 px-4 text-sm">🗑️ مسح الكل</button>
-              <button onClick={() => setShowAddModal(true)} className="btn-primary">+ إنشاء طلب وإسناد</button>
+              <button onClick={() => { setAddStage('select'); setShowAddModal(true); }} className="btn-primary">+ إنشاء طلب وإسناد</button>
             </>
           )}
         </div>
@@ -277,61 +298,128 @@ export default function RequestsPage() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[2rem] p-8 max-w-2xl w-full shadow-2xl animate-slide-up">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-black text-gray-900 italic">✨ إنشاء طلب وإسناد سريع</h3>
+              <h3 className="text-2xl font-black text-gray-900 italic">
+                {addStage === 'select' ? '✨ اختر نوع الطلب' : 
+                 addStage === 'pickup' ? '🚗 إنشاء طلب استلام من متبرع' : 
+                 '🏡 إنشاء طلب تسليم لأسر'}
+              </h3>
               <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">✕</button>
             </div>
             
-            <div className="grid md:grid-cols-2 gap-x-6 gap-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 mr-1">اسم المكان *</label>
-                <input className="form-input" value={newReq.donorName} onChange={e => setNewReq({...newReq, donorName: e.target.value})} placeholder="مثال: قاعة السعادة" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 mr-1">نوع المكان</label>
-                <select className="form-input" value={newReq.donorType} onChange={e => setNewReq({...newReq, donorType: e.target.value})}>
-                  <option value="">اختر النوع</option>
-                  {Object.entries(DONOR_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 mr-1">الحي</label>
-                <input className="form-input" value={newReq.district} onChange={e => setNewReq({...newReq, district: e.target.value})} placeholder="الحي" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-500 mr-1">رقم الجوال *</label>
-                <input className="form-input font-mono" value={newReq.phone} onChange={e => setNewReq({...newReq, phone: e.target.value})} placeholder="05XXXXXXXX" dir="ltr" />
-              </div>
-              <div className="md:col-span-2 space-y-1">
-                <label className="text-xs font-bold text-gray-500 mr-1">وقت استلام الأكل *</label>
-                <input className="form-input border-green-100 bg-green-50/20" value={newReq.pickupTime} onChange={e => setNewReq({...newReq, pickupTime: e.target.value})} placeholder="مثلاً: 9:30 مساءً" />
-              </div>
-              <div className="md:col-span-2 space-y-1">
-                <label className="text-xs font-bold text-gray-500 mr-1">رابط قوقل ماب</label>
-                <input className="form-input font-mono text-xs" value={newReq.googleMapsLink} onChange={e => setNewReq({...newReq, googleMapsLink: e.target.value})} placeholder="https://maps.google.com/..." dir="ltr" />
-              </div>
-
-              <div className="md:col-span-2 mt-4 pt-6 border-t border-gray-100">
-                <label className="text-sm font-black text-green-700 block mb-3">👤 إسناد لمندوب (اختياري)</label>
-                <select 
-                  className="form-input bg-green-50/50 border-green-100" 
-                  value={newReq.assignedCourierId} 
-                  onChange={e => setNewReq({...newReq, assignedCourierId: e.target.value})}
+            {addStage === 'select' && (
+              <div className="grid md:grid-cols-2 gap-6 py-4">
+                <button 
+                  onClick={() => setAddStage('pickup')}
+                  className="p-8 rounded-[2rem] border-2 border-dashed border-gray-200 hover:border-green-500 hover:bg-green-50 transition-all text-center group"
                 >
-                  <option value="">-- بدون إسناد حالياً --</option>
-                  {couriers.filter(c => c.availabilityStatus !== 'unavailable').map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.district}) - {c.availabilityStatus === 'available' ? '✅ متاح' : '🕔 مشغول'}
-                    </option>
-                  ))}
-                </select>
+                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">🍗</div>
+                  <div className="text-xl font-black text-gray-900 mb-2">استلام طلب (Pickup)</div>
+                  <p className="text-sm text-gray-500">من قاعات الأفراح، الفنادق، أو المطاعم</p>
+                </button>
+
+                <button 
+                  onClick={() => setAddStage('distribution')}
+                  className="p-8 rounded-[2rem] border-2 border-dashed border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all text-center group"
+                >
+                  <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">🏡</div>
+                  <div className="text-xl font-black text-gray-900 mb-2">تسليم للأسر (Delivery)</div>
+                  <p className="text-sm text-gray-500">توزيع مباشر للأسر المتعففة المسجلة</p>
+                </button>
               </div>
-            </div>
+            )}
+
+            {(addStage === 'pickup' || addStage === 'distribution') && (
+              <div className="grid md:grid-cols-2 gap-x-6 gap-y-4">
+                {addStage === 'pickup' ? (
+                  <>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 mr-1">اسم المكان *</label>
+                      <input className="form-input" value={newReq.donorName} onChange={e => setNewReq({...newReq, donorName: e.target.value})} placeholder="مثال: قاعة السعادة" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 mr-1">نوع المكان</label>
+                      <select className="form-input" value={newReq.donorType} onChange={e => setNewReq({...newReq, donorType: e.target.value})}>
+                        <option value="">اختر النوع</option>
+                        {Object.entries(DONOR_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 mr-1">الحي</label>
+                      <input className="form-input" value={newReq.district} onChange={e => setNewReq({...newReq, district: e.target.value})} placeholder="الحي" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 mr-1">رقم الجوال *</label>
+                      <input className="form-input font-mono" value={newReq.phone} onChange={e => setNewReq({...newReq, phone: e.target.value})} placeholder="05XXXXXXXX" dir="ltr" />
+                    </div>
+                    <div className="md:col-span-2 space-y-1">
+                      <label className="text-xs font-bold text-gray-500 mr-1">وقت استلام الأكل *</label>
+                      <input className="form-input border-green-100 bg-green-50/20" value={newReq.pickupTime} onChange={e => setNewReq({...newReq, pickupTime: e.target.value})} placeholder="مثلاً: 9:30 مساءً" />
+                    </div>
+                    <div className="md:col-span-2 space-y-1">
+                      <label className="text-xs font-bold text-gray-500 mr-1">رابط قوقل ماب</label>
+                      <input className="form-input font-mono text-xs" value={newReq.googleMapsLink} onChange={e => setNewReq({...newReq, googleMapsLink: e.target.value})} placeholder="https://maps.google.com/..." dir="ltr" />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="md:col-span-2 space-y-1">
+                      <label className="text-xs font-bold text-gray-500 mr-1">اختر الأسرة المستفيدة *</label>
+                      <select 
+                        className="form-input bg-blue-50/50 border-blue-100" 
+                        value={newReq.selectedFamilyId} 
+                        onChange={e => setNewReq({...newReq, selectedFamilyId: e.target.value})}
+                      >
+                        <option value="">-- اختر الأسرة --</option>
+                        {BENEFICIARY_FAMILIES.map(f => (
+                          <option key={f.id} value={f.id}>
+                            {f.familyName} ({f.district}) - {f.familySize} أفراد
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="md:col-span-2 space-y-1">
+                      <label className="text-xs font-bold text-gray-500 mr-1">ملاحظات التوزيع</label>
+                      <textarea 
+                        className="form-input h-24 resize-none" 
+                        placeholder="ماذا سيتم توزيعه للأسر المتعففة؟ (مثال: 5 وجبات أرز مع دجاج)"
+                        value={newReq.notes}
+                        onChange={e => setNewReq({...newReq, notes: e.target.value})}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="md:col-span-2 mt-4 pt-6 border-t border-gray-100">
+                  <label className="text-sm font-black text-green-700 block mb-3">
+                    👤 إسناد لمندوب {addStage === 'pickup' ? 'الاستلام' : 'التوصيل'} (اختياري)
+                  </label>
+                  <select 
+                    className="form-input bg-green-50/50 border-green-100" 
+                    value={newReq.assignedCourierId} 
+                    onChange={e => setNewReq({...newReq, assignedCourierId: e.target.value})}
+                  >
+                    <option value="">-- بدون إسناد حالياً --</option>
+                    {couriers.filter(c => c.availabilityStatus !== 'unavailable').map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.district}) - {c.availabilityStatus === 'available' ? '✅ متاح' : '🕔 مشغول'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-4 mt-8">
-              <button disabled={isSubmitting} onClick={() => setShowAddModal(false)} className="btn-ghost flex-1 py-4">إلغاء</button>
-              <button onClick={handleAddRequest} disabled={isSubmitting} className={`btn-primary flex-1 justify-center py-4 text-lg ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                {isSubmitting ? '⏳ جاري الحفظ...' : '🚀 حفظ وإرسال الطلب'}
-              </button>
+              {addStage !== 'select' ? (
+                <>
+                  <button onClick={() => setAddStage('select')} className="btn-ghost flex-1 py-4">السابق</button>
+                  <button onClick={handleAddRequest} disabled={isSubmitting} className={`btn-primary flex-1 justify-center py-4 text-lg ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    {isSubmitting ? '⏳ جاري الحفظ...' : '🚀 حفظ وإرسال الطلب'}
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => setShowAddModal(false)} className="btn-ghost w-full py-4 text-lg">إغلاق</button>
+              )}
             </div>
           </div>
         </div>
@@ -383,5 +471,12 @@ export default function RequestsPage() {
         </div>
       )}
     </div>
+  );
+}
+export default function RequestsPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center text-gray-400">جاري التحميل...</div>}>
+      <RequestsContent />
+    </Suspense>
   );
 }

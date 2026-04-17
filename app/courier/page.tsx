@@ -5,13 +5,10 @@ import { TASKS, TASK_STATUS_LABELS, PRIORITY_LABELS } from '@/lib/mock-data';
 import { getTaskStatusColor, getPriorityColor } from '@/lib/utils';
 import { DataService } from '@/lib/data-service';
 import { Task, FoodRequest } from '@/lib/types';
+import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
-const COURIER = {
-  id: 'c1',
-  name: 'محمد العمري',
-  badge: '👤',
-  phone: '0501234567'
-};
+
 
 const taskActionsByStatus: Record<string, { label: string; nextStatus: string; color: string }[]> = {
   pending: [
@@ -35,7 +32,7 @@ const taskActionsByStatus: Record<string, { label: string; nextStatus: string; c
   failed: [],
 };
 
-const mapRequestToTask = (r: FoodRequest): Task => {
+const mapRequestToTask = (r: FoodRequest, courierId: string): Task => {
   const revStatusMap: Record<string, string> = {
     'new': 'pending',
     'pickup_assigned': 'pending',
@@ -51,7 +48,7 @@ const mapRequestToTask = (r: FoodRequest): Task => {
     foodRequestId: r.id,
     requestNumber: r.requestNumber,
     taskType: 'pickup',
-    assignedCourierId: COURIER.id,
+    assignedCourierId: courierId,
     status: (revStatusMap[r.currentStatus] || 'pending') as Task['status'],
     donorName: r.donorName,
     district: r.district,
@@ -63,6 +60,9 @@ const mapRequestToTask = (r: FoodRequest): Task => {
 };
 
 export default function CourierDashboard() {
+  const router = useRouter();
+  const [courierInfo, setCourierInfo] = useState({ id: '', name: '', badge: '👤', phone: '0501234567' });
+  const [mounted, setMounted] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [rawRequests, setRawRequests] = useState<FoodRequest[]>([]);
   const [showNote, setShowNote] = useState<string | null>(null);
@@ -70,6 +70,7 @@ export default function CourierDashboard() {
   const [toast, setToast] = useState('');
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
   const [courierStatus, setCourierStatus] = useState('متاح');
+  const [photoTakenTasks, setPhotoTakenTasks] = useState<Record<string, boolean>>({});
   const [gpsStatus, setGpsStatus] = useState<'searching' | 'active' | 'denied' | 'error'>('searching');
   const [notifPermission, setNotifPermission] = useState<'default' | 'granted' | 'denied'>('default');
   const [seenTaskIds, setSeenTaskIds] = useState<Set<string>>(new Set());
@@ -86,12 +87,12 @@ export default function CourierDashboard() {
     const dynamicTasks = savedRequests
       .filter(r => {
         const isToday = r.createdAt.startsWith(todayStr);
-        const isMeOrPublic = r.pickupCourierId === COURIER.id || (!r.pickupCourierId && r.currentStatus === 'new');
+        const isMeOrPublic = r.pickupCourierId === courierInfo.id || (!r.pickupCourierId && r.currentStatus === 'new');
         return isToday && isMeOrPublic;
       })
-      .map(r => mapRequestToTask(r));
+      .map(r => mapRequestToTask(r, courierInfo.id));
 
-    const staticTasks = TASKS.filter(t => t.assignedCourierId === COURIER.id);
+    const staticTasks = TASKS.filter(t => t.assignedCourierId === courierInfo.id);
     setTasks([...dynamicTasks, ...staticTasks]);
     setRawRequests(savedRequests);
 
@@ -99,21 +100,38 @@ export default function CourierDashboard() {
   };
 
   useEffect(() => {
-    // 1. Initial Load
+    let subscription: any;
+
     const init = async () => {
+      // Auth Guard
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+
+      const role = localStorage.getItem('nema_user_role');
+      const name = localStorage.getItem('nema_user_name') || 'المندوب';
+      const id = localStorage.getItem('nema_auth_id') || 'c1';
+
+      if (role !== 'courier' && role !== 'admin') {
+        router.push('/login');
+        return;
+      }
+
+      setCourierInfo(prev => ({ ...prev, id, name }));
+      setMounted(true);
+      
       const initialRequests = await loadTasks();
-      // Initialize seen list to avoid notifying for existing tasks
-      setSeenTaskIds(new Set(initialRequests.map(r => r.id)));
-    };
-    init();
+      setSeenTaskIds(new Set(initialRequests.map((r: any) => r.id)));
 
-    // 2. Realtime Subscription for New Tasks
-    const subscription = DataService.subscribeToRequests((payload) => {
-      const newRecord = payload.new as FoodRequest;
-      const eventType = payload.eventType;
+      // Realtime Subscription
+      subscription = DataService.subscribeToRequests((payload) => {
+        const newRecord = payload.new as FoodRequest;
+        const eventType = payload.eventType;
 
-      if (eventType === 'INSERT') {
-        const isMeOrPublic = newRecord.pickupCourierId === COURIER.id || (!newRecord.pickupCourierId && newRecord.currentStatus === 'new');
+        if (eventType === 'INSERT') {
+          const isMeOrPublic = newRecord.pickupCourierId === id || (!newRecord.pickupCourierId && newRecord.currentStatus === 'new');
         if (isMeOrPublic) {
           triggerAlert(newRecord);
         }
@@ -128,10 +146,11 @@ export default function CourierDashboard() {
       setNotifPermission(Notification.permission);
     }
 
-    return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
-  }, []);
+  }, [courierInfo.id, router]);
 
   const triggerAlert = (request: FoodRequest) => {
     if (seenTaskIds.has(request.id)) return;
@@ -214,8 +233,8 @@ export default function CourierDashboard() {
 
       // Field logic
       if (newStatus === 'accepted') {
-        updates.pickupCourierId = COURIER.id;
-        updates.pickupCourierName = COURIER.name;
+        updates.pickupCourierId = courierInfo.id;
+        updates.pickupCourierName = courierInfo.name;
         updates.acceptedAt = now;
       }
       if (newStatus === 'started') updates.startedAt = now;
@@ -224,6 +243,13 @@ export default function CourierDashboard() {
 
       await DataService.updateRequestStatus(task.foodRequestId, updates);
       
+      // Clear photo requirement for this task after successful update
+      setPhotoTakenTasks(prev => {
+        const next = { ...prev };
+        delete next[taskId];
+        return next;
+      });
+
       showToast('✅ تم تحديث حالة المهمة بنجاح');
       loadTasks(); // Refresh UI
     } catch (e) {
@@ -297,7 +323,9 @@ export default function CourierDashboard() {
 
   const updateLocation = async (lat: number, lng: number) => {
     // Sync to Supabase
-    await DataService.updateCourierLocation(COURIER.id, lat, lng);
+    if (courierInfo.id) {
+       await DataService.updateCourierLocation(courierInfo.id, lat, lng);
+    }
     
     if (markerRef.current) {
       markerRef.current.setLatLng([lat, lng]);
@@ -312,6 +340,8 @@ export default function CourierDashboard() {
   const activeTasks = tasks.filter(t => !['completed', 'failed'].includes(t.status));
   const completedTasks = tasks.filter(t => ['completed', 'failed'].includes(t.status));
 
+  if (!mounted) return <div className="min-h-screen bg-gray-50 flex items-center justify-center font-bold text-gray-400">جاري التحقق...</div>;
+
   return (
     <div className="min-h-screen bg-gray-50" style={{ direction: 'rtl' }}>
       {toast && <div className="toast toast-success">{toast}</div>}
@@ -322,11 +352,11 @@ export default function CourierDashboard() {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black shadow-lg"
               style={{ background: 'linear-gradient(135deg, var(--color-primary), #1e3d1e)' }}>
-              {COURIER.badge}
+              {courierInfo.badge}
             </div>
             <div>
               <div className="font-black text-gray-900">لوحة المندوب</div>
-              <div className="text-xs text-[#6dbe45] font-black uppercase tracking-wider">{COURIER.name}</div>
+              <div className="text-xs text-[#6dbe45] font-black uppercase tracking-wider">{courierInfo.name}</div>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -336,7 +366,11 @@ export default function CourierDashboard() {
               </button>
             )}
             <span className="badge text-xs bg-green-100 text-green-700">● متاح</span>
-            <Link href="/login" className="btn-ghost py-1.5 px-3 text-sm">خروج</Link>
+            <button onClick={async () => {
+              await supabase.auth.signOut();
+              localStorage.clear();
+              window.location.href = '/login';
+            }} className="btn-ghost py-1.5 px-3 text-sm">خروج</button>
           </div>
         </div>
       </header>
@@ -442,7 +476,7 @@ export default function CourierDashboard() {
 
                   {/* Personalized Message */}
                   <div className="bg-[#2f5d2f]/5 border-r-4 border-[#2f5d2f] p-3 rounded-l-xl mb-4 text-sm leading-relaxed">
-                    <span className="font-black text-[#2f5d2f]">مرحباً {COURIER.name.split(' ')[0]}،</span> لديك مهمة استلام فائض طعام من <span className="font-bold">{task.donorName}</span> بحي <span className="font-bold">{task.district}</span>. 
+                    <span className="font-black text-[#2f5d2f]">مرحباً {courierInfo.name.split(' ')[0]}،</span> لديك مهمة استلام فائض طعام من <span className="font-bold">{task.donorName}</span> بحي <span className="font-bold">{task.district}</span>. 
                     يرجى محاولة الوصول في تمام <span className="font-black text-[#b68a3a] underline decoration-wavy decoration-[#b68a3a]/30 italic">{task.pickupTime}</span> وتحديث الحالة فور الاستلام.
                   </div>
 
@@ -487,13 +521,32 @@ export default function CourierDashboard() {
 
               {/* Action Buttons */}
               {taskActionsByStatus[task.status]?.length > 0 && (
-                <div className="space-y-2">
-                  {taskActionsByStatus[task.status].map((action, i) => (
-                    <button key={i} onClick={() => updateTaskStatus(task.id, action.nextStatus)}
-                      className={`w-full justify-center py-3 text-sm ${action.color}`}>
-                      {action.label}
-                    </button>
-                  ))}
+                <div className="space-y-3">
+                  {taskActionsByStatus[task.status].map((action, i) => {
+                    // Photo requirement logic
+                    const needsPhoto = 
+                      (task.status === 'started' && action.nextStatus === 'arrived') || 
+                      (task.status === 'arrived' && action.nextStatus === 'executed');
+                    
+                    const isPhotoTaken = photoTakenTasks[task.id];
+                    const isDisabled = needsPhoto && !isPhotoTaken;
+
+                    return (
+                      <div key={i} className="space-y-2">
+                        {isDisabled && (
+                          <div className="text-xs text-orange-600 font-bold bg-orange-50 p-2 rounded-lg border border-orange-100 flex items-center gap-2 animate-pulse">
+                            ⚠️ يرجى التقاط صورة للموقع أولاً لتتمكن من الضغط على {action.label}
+                          </div>
+                        )}
+                        <button 
+                          onClick={() => updateTaskStatus(task.id, action.nextStatus)}
+                          disabled={isDisabled}
+                          className={`w-full justify-center py-3 text-sm transition-all ${isDisabled ? 'bg-gray-200 text-gray-400 cursor-not-allowed border-none' : action.color}`}>
+                          {action.label}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -502,7 +555,14 @@ export default function CourierDashboard() {
                 <div className="flex gap-2 mt-3">
                   <button onClick={() => setShowNote(task.id)}
                     className="btn-ghost flex-1 justify-center text-xs py-2">💬 إضافة ملاحظة</button>
-                  <label className="btn-ghost flex-1 justify-center text-xs py-2 cursor-pointer text-center m-0 flex items-center">
+                  <label className={`btn-ghost flex-1 justify-center text-xs py-2 cursor-pointer text-center m-0 flex items-center transition-all ${
+                    Object.keys(taskActionsByStatus[task.status] || {}).some(key => {
+                      const action = taskActionsByStatus[task.status][parseInt(key)];
+                      const needsPhoto = (task.status === 'started' && action?.nextStatus === 'arrived') || 
+                                         (task.status === 'arrived' && action?.nextStatus === 'executed');
+                      return needsPhoto && !photoTakenTasks[task.id];
+                    }) ? 'bg-orange-100 text-orange-700 border-2 border-orange-500 font-bold animate-pulse' : ''
+                  }`}>
                     <input 
                       type="file" 
                       accept="image/*" 
@@ -540,6 +600,10 @@ export default function CourierDashboard() {
                               await DataService.updateRequestStatus(targetReq.id, {
                                 images: [...(targetReq.images || []), newImage]
                               });
+                              
+                              // Mark photo as taken for this task
+                              setPhotoTakenTasks(prev => ({ ...prev, [task.id]: true }));
+                              
                               showToast('📷 تم حفظ الصورة في السحابة بنجاح');
                               loadTasks(); // Refresh to show new image if needed
                             } catch (error) {

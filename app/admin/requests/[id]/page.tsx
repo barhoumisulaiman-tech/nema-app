@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useState, useEffect, use } from 'react';
 import { FOOD_REQUESTS, ACTIVITY_LOGS, COURIERS, BENEFICIARY_FAMILIES, STATUS_LABELS, DONOR_TYPE_LABELS, PRIORITY_LABELS } from '@/lib/mock-data';
 import { getStatusColor, getPriorityColor, getStatusProgress } from '@/lib/utils';
-import { Courier, FoodRequest } from '@/lib/types';
+import { Courier, FoodRequest, RequestStatus } from '@/lib/types';
 import { DataService } from '@/lib/data-service';
 
 const statusOrder = ['new','reviewing','accepted','pickup_assigned','courier_on_way','picked_up','sorting','distribution_assigned','distributing','distributed','completed'];
@@ -87,6 +87,16 @@ export default function RequestDetailPage({ params: paramsPromise }: { params: P
     courierMessage: `مرحباً محمد، لديك مهمة استلام فائض طعام من ${request.donorName} بحي ${request.district}. يرجى محاولة الوصول في تمام ${request.pickupTime} وتحديث الحالة فور الاستلام.`,
   };
 
+  const updateStatus = async (newStatus: RequestStatus) => {
+    try {
+      if (!request) return;
+      await DataService.updateRequestStatus(request.id, { currentStatus: newStatus });
+      showToast(`✅ تم تحديث حالة الطلب إلى: ${STATUS_LABELS[newStatus]}`);
+    } catch (err) {
+      showToast('❌ خطأ في تحديث الحالة');
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in" style={{ direction: 'rtl' }}>
       {/* Toast */}
@@ -106,8 +116,18 @@ export default function RequestDetailPage({ params: paramsPromise }: { params: P
         <div className="flex gap-2">
           {userRole === 'admin' && (
             <>
-              <button onClick={() => showToast('✅ تم قبول الطلب')} className="btn-primary py-2 px-4 text-sm">✅ قبول</button>
-              <button onClick={() => showToast('❌ تم رفض الطلب')} className="btn-danger py-2 px-4 text-sm">❌ رفض</button>
+              <button 
+                disabled={request.currentStatus === 'accepted'}
+                onClick={() => updateStatus('accepted')} 
+                className={`btn-primary py-2 px-4 text-sm ${request.currentStatus === 'accepted' ? 'opacity-50' : ''}`}>
+                ✅ قبول
+              </button>
+              <button 
+                disabled={request.currentStatus === 'rejected'}
+                onClick={() => updateStatus('rejected')} 
+                className="btn-danger py-2 px-4 text-sm">
+                ❌ رفض
+              </button>
             </>
           )}
           <button onClick={() => window.print()} className="btn-ghost py-2 px-4 text-sm">🖨️ طباعة</button>
@@ -217,7 +237,19 @@ export default function RequestDetailPage({ params: paramsPromise }: { params: P
                           <div className="text-xs text-gray-400">{c.district} · ⭐{c.rating}</div>
                         </div>
                       </div>
-                      <button onClick={() => { showToast(`✅ تم تعيين ${c.name}`); setShowAssign(false); }}
+                      <button onClick={async () => { 
+                        try {
+                          await DataService.updateRequestStatus(request.id, { 
+                            pickupCourierId: c.id, 
+                            pickupCourierName: c.name,
+                            currentStatus: 'pickup_assigned'
+                          });
+                          showToast(`✅ تم تعيين ${c.name}`); 
+                          setShowAssign(false); 
+                        } catch (err) {
+                          showToast('❌ خطأ في التعيين');
+                        }
+                      }}
                         className="btn-primary py-1.5 px-3 text-xs">تعيين</button>
                     </div>
                   ))}

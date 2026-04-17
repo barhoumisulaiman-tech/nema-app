@@ -17,6 +17,7 @@ const mapRequestToDb = (req: Partial<FoodRequest>) => {
   if (req.pickupCourierId !== undefined) mapped.pickup_courier_id = req.pickupCourierId;
   if (req.pickupCourierName !== undefined) mapped.pickup_courier_name = req.pickupCourierName;
   if (req.images !== undefined) mapped.images = req.images;
+
   if (req.createdAt !== undefined) mapped.created_at = req.createdAt;
   if (req.updatedAt !== undefined) mapped.updated_at = req.updatedAt;
   return mapped;
@@ -39,6 +40,10 @@ const mapRequestFromDb = (row: any): FoodRequest => {
     pickupCourierId: row.pickup_courier_id,
     pickupCourierName: row.pickup_courier_name,
     images: row.images,
+    acceptedAt: row.accepted_at,
+    startedAt: row.started_at,
+    arrivedAt: row.arrived_at,
+    completedAt: row.completed_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -91,10 +96,17 @@ export const DataService = {
   },
 
   async updateRequestStatus(id: string, updates: Partial<FoodRequest>) {
+    // Automatically set timestamps based on status
+    const now = new Date().toISOString();
+    if (updates.currentStatus === 'accepted') updates.acceptedAt = now;
+    if (updates.currentStatus === 'courier_on_way') updates.startedAt = now;
+    if (updates.currentStatus === 'picked_up') updates.arrivedAt = now;
+    if (updates.currentStatus === 'completed') updates.completedAt = now;
+
     const dbUpdates = mapRequestToDb(updates);
     const { error } = await supabase
       .from('food_requests')
-      .update({ ...dbUpdates, updated_at: new Date().toISOString() })
+      .update({ ...dbUpdates, updated_at: now })
       .eq('id', id);
 
     if (error) {

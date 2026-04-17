@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { QOOT_LOGO_BASE64 } from '@/lib/brand';
+import { supabase } from '@/lib/supabase';
 
 const navItems = [
   { href: '/supervisor', label: 'لوحة التحكم', icon: '📊', exact: true },
@@ -54,7 +55,11 @@ function Sidebar({ open, onClose, name }: { open: boolean; onClose: () => void; 
               <div className="text-[10px] text-yellow-700 font-bold uppercase tracking-wider">مشرف - مشاهدة فقط</div>
             </div>
           </div>
-          <Link href="/login" onClick={() => { localStorage.removeItem('nema_user_role'); }} className="btn-ghost w-full justify-center mt-3 text-xs text-red-500">تسجيل الخروج</Link>
+          <button onClick={async () => { 
+            await supabase.auth.signOut();
+            localStorage.clear();
+            window.location.href = '/login';
+          }} className="btn-ghost w-full justify-center mt-3 text-xs text-red-500">تسجيل الخروج</button>
         </div>
       </aside>
     </>
@@ -68,16 +73,34 @@ export default function SupervisorLayout({ children }: { children: React.ReactNo
   const router = useRouter();
 
   useEffect(() => {
-    setMounted(true);
-    const role = localStorage.getItem('nema_user_role');
-    const name = localStorage.getItem('nema_user_name');
-    
-    // Safety redirect if definitely not authorized
-    if (role !== 'supervisor' && role !== 'admin') {
-      router.push('/login');
-    } else {
-      setUserName(name || 'المشرف');
-    }
+    const verifyAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+      
+      const role = localStorage.getItem('nema_user_role');
+      const name = localStorage.getItem('nema_user_name');
+      
+      if (role !== 'supervisor' && role !== 'admin') {
+        router.push('/login');
+      } else {
+        setUserName(name || 'المشرف');
+        setMounted(true);
+      }
+    };
+    verifyAuth();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        router.push('/login');
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, [router]);
 
   if (!mounted) return <div className="min-h-screen bg-gray-50 flex items-center justify-center font-bold text-gray-400">جاري التحقق...</div>;

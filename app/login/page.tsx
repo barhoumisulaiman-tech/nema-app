@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import { supabase } from '@/lib/supabase';
 
 const ROLES = {
   admin: { label: 'الإدارة', icon: '⚙️', color: '#2f5d2f', redirectTo: '/admin', email: 'admin@nema.org.sa', pass: '123456' },
@@ -25,13 +26,40 @@ function LoginForm() {
   const handleLogin = async () => {
     setLoading(true);
     setError('');
-    await new Promise(r => setTimeout(r, 1200));
-    if (email === currentRole.email && password === currentRole.pass) {
-      localStorage.setItem('nema_user_role', role);
-      localStorage.setItem('nema_user_name', role === 'admin' ? 'أ. حسان' : 'المشرف');
-      router.push(currentRole.redirectTo);
-    } else {
-      setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+    
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError || !data.user) {
+        setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+        setLoading(false);
+        return;
+      }
+
+      // Fetch profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        setError('تعذر العثور على صلاحيات الحساب. يرجى مراجعة الدعم.');
+        setLoading(false);
+        return;
+      }
+
+      localStorage.setItem('nema_user_role', profile.role);
+      localStorage.setItem('nema_user_name', profile.name);
+      localStorage.setItem('nema_auth_id', profile.id);
+      
+      const correctRoute = ROLES[profile.role as keyof typeof ROLES]?.redirectTo || '/';
+      router.push(correctRoute);
+    } catch (err: any) {
+      setError(err.message || 'حدث خطأ غير متوقع');
       setLoading(false);
     }
   };
